@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 text-gray-900" style="font-family: 'Inter', sans-serif;">
+    <div class="flex h-screen flex-col">
+      <nav class="border-b border-white/60 bg-white/70 backdrop-blur-md shadow-lg">
+        <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
+          <div>
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" style="font-family: 'Poppins', sans-serif;">ChatBot</h1>
+          </div>
+          <div class="text-sm font-medium text-purple-600">💬 Online</div>
+        </div>
+      </nav>
+
+      <main class="flex flex-1 overflow-hidden">
+        <div class="flex w-full flex-col">
+          <div class="flex-1 overflow-y-auto">
+            <div class="mx-auto max-w-4xl">
+              <div id="chatMessages" class="space-y-5 px-4 py-8 sm:px-6"></div>
+            </div>
+          </div>
+
+          <div class="border-t border-white/60 bg-white/50 backdrop-blur-md">
+            <div class="mx-auto max-w-4xl px-4 py-5 sm:px-6">
+              <form id="chatForm" class="flex gap-3">
+                <textarea
+                  id="chatInput"
+                  rows="1"
+                  placeholder="Type your message here..."
+                  class="min-h-[48px] max-h-[200px] flex-1 resize-none rounded-full border border-gray-200/80 bg-white/80 px-5 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-200/50 shadow-sm"
+                  required
+                ></textarea>
+                <button
+                  type="submit"
+                  class="flex h-[48px] w-[48px] items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 font-semibold text-white transition hover:shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105"
+                  title="Send message"
+                >
+                  ➤
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="openrouter.js"></script>
+  </body>
+</html>
