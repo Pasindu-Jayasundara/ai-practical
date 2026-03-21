@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-primary: #58a6ff;
+            --accent-secondary: #79c0ff;
+            --error-red: #f85149;
+            --warning-yellow: #d29922;
+            --success-green: #3fb950;
+            --info-blue: #58a6ff;
+            --border-color: #30363d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .settings-toggle {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .settings-toggle:hover {
+            background-color: var(--border-color);
+            border-color: var(--accent-primary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: calc(100vh - 80px);
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .settings-content {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .close-settings {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-settings:hover {
+            color: var(--text-primary);
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .setting-group input {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .setting-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .security-warning {
+            background-color: rgba(212, 153, 34, 0.15);
+            border: 1px solid var(--warning-yellow);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 12px;
+            color: var(--warning-yellow);
+            margin-bottom: 20px;
+        }
+
+        .save-settings {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--accent-primary);
+            border: none;
+            color: var(--bg-primary);
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .save-settings:hover {
+            background-color: var(--accent-secondary);
+            transform: translateY(-2px);
+        }
+
+        /* Code Input Panel */
+        .input-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel-header {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .input-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .language-select {
+            flex: 1;
+            min-width: 150px;
+            padding: 10px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .language-select:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .language-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--border-color);
+            border-color: var(--border-color);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .button-primary {
+            background-color: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .button-primary:hover {
+            background-color: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+        }
+
+        .button-primary:disabled {
+            background-color: var(--text-secondary);
+            border-color: var(--text-secondary);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .code-editor {
+            flex: 1;
+            padding: 15px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+            transition: all 0.2s;
+        }
+
+        .code-editor:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        /* Results Panel */
+        .results-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .results-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .results-content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .results-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .error-item {
+            background-color: var(--bg-tertiary);
+            border-left: 4px solid var(--error-red);
+            border-radius: 6px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+
+        .error-item.warning {
+            border-left-color: var(--warning-yellow);
+        }
+
+        .error-item.info {
+            border-left-color: var(--info-blue);
+        }
+
+        .error-item:hover {
+            background-color: var(--border-color);
+            transform: translateX(4px);
+        }
+
+        .error-header {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .error-type {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: rgba(248, 81, 73, 0.15);
+            color: var(--error-red);
+        }
+
+        .error-type.warning {
+            background-color: rgba(210, 153, 34, 0.15);
+            color: var(--warning-yellow);
+        }
+
+        .error-type.info {
+            background-color: rgba(88, 166, 255, 0.15);
+            color: var(--info-blue);
+        }
+
+        .error-location {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .error-description {
+            color: var(--text-primary);
+            font-size: 13px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .error-solution {
+            background-color: rgba(63, 185, 80, 0.1);
+            border-left: 2px solid var(--success-green);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--success-green);
+            line-height: 1.5;
+        }
+
+        .solution-label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Loading State */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Success State */
+        .success-message {
+            background-color: rgba(63, 185, 80, 0.15);
+            border: 1px solid var(--success-green);
+            border-radius: 6px;
+            padding: 15px;
+            color: var(--success-green);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* Error Message */
+        .error-message {
+            background-color: rgba(248, 81, 73, 0.15);
+            border: 1px solid var(--error-red);
+            border-radius: 6px;
+            padding: 15px;
+            color: var(--error-red);
+            font-size: 14px;
+        }
+
+        .error-message-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        /* Scrollbar Styling */
+        .results-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .results-content::-webkit-scrollbar-track {
+            background-color: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .results-content::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .results-content::-webkit-scrollbar-thumb:hover {
+            background-color: var(--text-secondary);
+        }
+
+        .code-editor::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .code-editor::-webkit-scrollbar-track {
+            background-color: var(--bg-secondary);
+        }
+
+        .code-editor::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .code-editor::-webkit-scrollbar-thumb:hover {
+            background-color: var(--text-secondary);
+        }
+
+        /* Stats */
+        .results-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .stat.errors .stat-number {
+            color: var(--error-red);
+        }
+
+        .stat.warnings .stat-number {
+            color: var(--warning-yellow);
+        }
+
+        .stat.info .stat-number {
+            color: var(--info-blue);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-left">
+            <div>
+                <div class="header-title">🤖 AI Code Analyzer</div>
+                <div class="header-subtitle">Powered by OpenRouter</div>
+            </div>
+        </div>
+        <button class="settings-toggle" id="settingsToggle">⚙️ Settings</button>
+    </header>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>API Configuration</h2>
+                <button class="close-settings" id="closeSettings">✕</button>
+            </div>
+            
+            <div class="security-warning">
+                ⚠️ Your API key is stored locally in your browser only. Never share your API key. Visit <a href="https://openrouter.ai/" target="_blank" style="color: inherit; text-decoration: underline;">openrouter.ai</a> to get a free API key.
+            </div>
+
+            <div class="setting-group">
+                <label for="apiKey">OpenRouter API Key</label>
+                <input 
+                    type="password" 
+                    id="apiKey" 
+                    placeholder="sk-or-v1-..." 
+                    autocomplete="off"
+                >
+            </div>
+
+            <button class="save-settings" id="saveSettings">Save API Key</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Input Panel -->
+        <div class="input-panel">
+            <div class="panel-header">📝 Code to Analyze</div>
+            
+            <div class="input-controls">
+                <select class="language-select" id="languageSelect">
+                    <option value="auto">Auto-detect Language</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="csharp">C#</option>
+                    <option value="cpp">C++</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="sql">SQL</option>
+                    <option value="php">PHP</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                </select>
+            </div>
+
+            <textarea 
+                class="code-editor" 
+                id="codeInput" 
+                placeholder="Paste your code here..."
+            ></textarea>
+
+            <div class="button-group">
+                <button class="button-primary" id="analyzeBtn">🔍 Analyze Code</button>
+                <button id="clearBtn">Clear</button>
+                <button id="copyBtn">Copy Code</button>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="results-panel">
+            <div class="panel-header">📊 Analysis Results</div>
+            
+            <div class="results-placeholder" id="resultsPlaceholder">
+                Paste code and click "Analyze" to get started
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div class="loading-text" id="loadingText">Analyzing your code...</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">This may take a moment on the first attempt</div>
+            </div>
+
+            <div class="results-content" id="resultsContent">
+                <div class="results-stats" id="resultsStats"></div>
+                <div id="resultsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== Configuration ====================
+        const CONFIG = {
+            OPENROUTER_URL: 'https://openrouter.ai/api/v1/chat/completions',
+            MODEL: 'stepfun/step-3.5-flash:free', // Free model from OpenRouter
+            MAX_TOKENS: 1000, // Reduced to avoid rate limits
+            MAX_RETRIES: 3,
+            INITIAL_RETRY_DELAY: 2000, // 2 seconds
+            RETRY_BACKOFF: 2, // Exponential backoff multiplier
+        };
+
+        // ==================== DOM Elements ====================
+        const codeInput = document.getElementById('codeInput');
+        const languageSelect = document.getElementById('languageSelect');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const apiKeyInput = document.getElementById('apiKey');
+        const saveSettingsBtn = document.getElementById('saveSettings');
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const closeSettings = document.getElementById('closeSettings');
+        const loading = document.getElementById('loading');
+        const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+        const resultsContent = document.getElementById('resultsContent');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsStats = document.getElementById('resultsStats');
+
+        // ==================== Event Listeners ====================
+        analyzeBtn.addEventListener('click', analyzeCode);
+        clearBtn.addEventListener('click', clearCode);
+        copyBtn.addEventListener('click', copyCode);
+        saveSettingsBtn.addEventListener('click', saveAPIKey);
+        settingsToggle.addEventListener('click', openSettings);
+        closeSettings.addEventListener('click', closeSettingsPanel);
+        settingsPanel.addEventListener('click', (e) => {
+            if (e.target === settingsPanel) closeSettingsPanel();
+        });
+
+        // ==================== Settings Management ====================
+        function saveAPIKey() {
+            const apiKey = apiKeyInput.value.trim();
+            
+            if (!apiKey) {
+                showError('Please enter an API key');
+                return;
+            }
+
+            localStorage.setItem('openrouter_api_key', apiKey);
+            showSuccess('API key saved successfully!');
+            setTimeout(closeSettingsPanel, 1000);
+        }
+
+        function getAPIKey() {
+            return localStorage.getItem('openrouter_api_key');
+        }
+
+        function openSettings() {
+            const savedKey = getAPIKey();
+            apiKeyInput.value = savedKey || '';
+            settingsPanel.classList.add('active');
+        }
+
+        function closeSettingsPanel() {
+            settingsPanel.classList.remove('active');
+        }
+
+        // ==================== Helper Functions ====================
+        async function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function fetchWithRetry(fetchFn, maxRetries = CONFIG.MAX_RETRIES, initialDelay = CONFIG.INITIAL_RETRY_DELAY) {
+            let lastError;
+            let delay = initialDelay;
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    return await fetchFn();
+                } catch (error) {
+                    lastError = error;
+                    
+                    // Check if it's a rate limit error
+                    if (error.isRateLimited) {
+                        if (attempt < maxRetries) {
+                            const waitSeconds = Math.ceil(delay / 1000);
+                            const message = `Rate limited. Retrying in ${waitSeconds}s... (Attempt ${attempt}/${maxRetries})`;
+                            console.log(message);
+                            updateLoadingMessage(message);
+                            await sleep(delay);
+                            delay *= CONFIG.RETRY_BACKOFF;
+                        } else {
+                            throw new Error(`⏱️ Rate limited by OpenRouter API. The free tier has usage limits. Please wait a few minutes and try again. (Attempted ${maxRetries} times)`);
+                        }
+                    } else {
+                        // Non-retryable error, throw immediately
+                        throw error;
+                    }
+                }
+            }
+
+            throw lastError;
+        }
+
+        // ==================== Code Analysis ====================
+        async function analyzeCode() {
+            const code = codeInput.value.trim();
+            const language = languageSelect.value;
+            const apiKey = getAPIKey();
+
+            // Validation
+            if (!code) {
+                showError('Please paste some code to analyze');
+                return;
+            }
+
+            if (!apiKey) {
+                showError('Please set your OpenRouter API key in Settings');
+                return;
+            }
+
+            // Show loading state
+            setLoadingState(true);
+
+            try {
+                const errors = await callOpenRouterAPI(code, language, apiKey);
+                displayResults(errors);
+            } catch (error) {
+                console.error('Analysis error:', error);
+                let displayMessage = error.message;
+                
+                // Provide additional help text for common errors
+                if (displayMessage.includes('empty response')) {
+                    displayMessage += '\n\n💡 Tip: This might be a temporary API issue. Try:\n1. Waiting 30 seconds\n2. Analyzing simpler code\n3. Refreshing the page';
+                }
+                
+                showError(displayMessage);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        async function callOpenRouterAPI(code, language, apiKey) {
+            const languageHint = language === 'auto' ? '' : ` The code is in ${language}.`;
+            
+            const prompt = `You are a code analyzer. Analyze the following code for errors, bugs, syntax issues, logic problems, and improvement suggestions. ${languageHint}
+
+Code:
+\`\`\`
+${code}
+\`\`\`
+
+Return ONLY valid JSON (no other text) in this exact format:
+{
+  "errors": [
+    {
+      "type": "error",
+      "line": "line number or unknown",
+      "description": "what is wrong",
+      "solution": "how to fix it"
+    }
+  ]
+}
+
+Rules:
+- Return empty array [] if no errors found
+- Type can be: error, warning, or info
+- Always include line, description, and solution fields
+- Return ONLY JSON, no markdown, no code blocks, no explanation`;
+
+            return await fetchWithRetry(async () => {
+                const response = await fetch(CONFIG.OPENROUTER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AI Code Analyzer',
+                    },
+                    body: JSON.stringify({
+                        model: CONFIG.MODEL,
+                        messages: [
+                            {
+                                role: 'user',
+                                content: prompt,
+                            }
+                        ],
+                        max_tokens: CONFIG.MAX_TOKENS,
+                        temperature: 0.3,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    
+                    if (response.status === 429) {
+                        const error = new Error('Rate limited by OpenRouter. The free API has usage limits. Retrying...');
+                        error.isRateLimited = true;
+                        throw error;
+                    } else if (response.status === 401) {
+                        throw new Error('❌ Invalid API key. Please check your OpenRouter API key in Settings.');
+                    } else if (response.status === 500 || response.status === 502 || response.status === 503) {
+                        const error = new Error(`OpenRouter API is temporarily unavailable (${response.status}). Retrying...`);
+                        error.isRateLimited = true; // Treat server errors as retryable
+                        throw error;
+                    } else if (errorData.error?.message) {
+                        throw new Error(`❌ API Error: ${errorData.error.message}`);
+                    } else {
+                        throw new Error(`❌ API Error: ${response.status} ${response.statusText}`);
+                    }
+                }
+
+                const data = await response.json();
+                
+                // Debug: Log the actual response structure
+                console.log('API Response:', {
+                    hasChoices: !!data.choices,
+                    choicesLength: data.choices?.length,
+                    firstChoice: data.choices?.[0],
+                    hasMessage: !!data.choices?.[0]?.message,
+                    contentType: typeof data.choices?.[0]?.message?.content,
+                    contentLength: data.choices?.[0]?.message?.content?.length
+                });
+
+                let content = data.choices?.[0]?.message?.content || '';
+                
+                // Fallback: Check for alternative response structures
+                if (!content && data.result) {
+                    content = data.result;
+                }
+                if (!content && data.text) {
+                    content = data.text;
+                }
+                if (!content && data.message) {
+                    content = data.message;
+                }
+
+                if (!content || content.trim().length === 0) {
+                    console.error('Empty response received. Full data:', JSON.stringify(data).substring(0, 500));
+                    const error = new Error('API returned empty response. This might be a temporary issue. Retrying...');
+                    error.isRateLimited = true; // Treat as retryable
+                    throw error;
+                }
+
+                // Parse JSON response - try multiple strategies
+                let analysisResult = null;
+
+                // Strategy 1: Try direct JSON parse
+                try {
+                    analysisResult = JSON.parse(content);
+                } catch (e1) {
+                    // Strategy 2: Extract JSON from text using balanced bracket matching
+                    const jsonStr = extractJSON(content);
+                    if (jsonStr) {
+                        try {
+                            analysisResult = JSON.parse(jsonStr);
+                        } catch (e2) {
+                            console.error('Failed to parse extracted JSON:', jsonStr.substring(0, 200));
+                            // Strategy 3: Fallback - treat entire response as text and indicate no structured errors found
+                            analysisResult = { errors: [] };
+                        }
+                    } else {
+                        console.error('Failed to extract JSON from response:', {
+                            contentPreview: content.substring(0, 300),
+                            contentLength: content.length
+                        });
+                        // Strategy 3: Fallback - create a generic error from the response
+                        analysisResult = { 
+                            errors: [{
+                                type: 'info',
+                                line: 'unknown',
+                                description: 'Unable to parse detailed analysis. The API returned: ' + content.substring(0, 200).trim(),
+                                solution: 'Try again with simpler code or check that the code is valid.'
+                            }]
+                        };
+                    }
+                }
+
+                if (!analysisResult || typeof analysisResult !== 'object') {
+                    analysisResult = { errors: [] };
+                }
+
+                return analysisResult.errors || [];
+            });
+        }
+
+        // Helper function to extract JSON from text
+        function extractJSON(text) {
+            // Find the first { and matching }
+            const start = text.indexOf('{');
+            if (start === -1) return null;
+
+            let braceCount = 0;
+            for (let i = start; i < text.length; i++) {
+                if (text[i] === '{') braceCount++;
+                if (text[i] === '}') {
+                    braceCount--;
+                    if (braceCount === 0) {
+                        return text.substring(start, i + 1);
+                    }
+                }
+            }
+            return null;
+        }
+
+        // ==================== Display Results ====================
+        function displayResults(errors) {
+            resultsPlaceholder.style.display = 'none';
+            resultsContent.classList.add('active');
+
+            // Count error types
+            const errorCounts = {
+                errors: errors.filter(e => e.type === 'error').length,
+                warnings: errors.filter(e => e.type === 'warning').length,
+                info: errors.filter(e => e.type === 'info').length,
+            };
+
+            // Display stats
+            if (errors.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="success-message">
+                        ✓ No errors found! Your code looks good.
+                    </div>
+                `;
+                resultsStats.innerHTML = '';
+            } else {
+                resultsStats.innerHTML = `
+                    <div class="stat errors">
+                        <span class="stat-number">${errorCounts.errors}</span>
+                        <div class="stat-label">Errors</div>
+                    </div>
+                    <div class="stat warnings">
+                        <span class="stat-number">${errorCounts.warnings}</span>
+                        <div class="stat-label">Warnings</div>
+                    </div>
+                    <div class="stat info">
+                        <span class="stat-number">${errorCounts.info}</span>
+                        <div class="stat-label">Info</div>
+                    </div>
+                `;
+
+                // Display each error
+                const errorsHTML = errors
+                    .map((error, index) => createErrorElement(error, index))
+                    .join('');
+                resultsContainer.innerHTML = errorsHTML;
+            }
+        }
+
+        function createErrorElement(error, index) {
+            const typeClass = error.type === 'warning' ? 'warning' : error.type === 'info' ? 'info' : '';
+            const typeEmoji = error.type === 'error' ? '❌' : error.type === 'warning' ? '⚠️' : 'ℹ️';
+
+            return `
+                <div class="error-item ${typeClass}">
+                    <div class="error-header">
+                        <span class="error-type ${typeClass}">${typeEmoji} ${error.type || 'Error'}</span>
+                        ${error.line && error.line !== 'unknown' ? `<span class="error-location">Line ${error.line}</span>` : ''}
+                    </div>
+                    <div class="error-description">${escapeHTML(error.description)}</div>
+                    ${error.solution ? `
+                        <div class="error-solution">
+                            <span class="solution-label">💡 Solution:</span>
+                            ${escapeHTML(error.solution)}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // ==================== UI Utilities ====================
+        function setLoadingState(isLoading, message = 'Analyzing your code...') {
+            analyzeBtn.disabled = isLoading;
+            loading.classList.toggle('active', isLoading);
+            
+            if (isLoading) {
+                const loadingText = document.getElementById('loadingText');
+                if (loadingText) {
+                    loadingText.textContent = message;
+                }
+            } else {
+                loading.classList.remove('active');
+            }
+        }
+
+        function updateLoadingMessage(message) {
+            const loadingText = document.getElementById('loadingText');
+            if (loadingText && loading.classList.contains('active')) {
+                loadingText.textContent = message;
+            }
+        }
+
+        function showError(message) {
+            resultsPlaceholder.style.display = 'none';
+            resultsContent.classList.add('active');
+            resultsStats.innerHTML = '';
+            
+            // Add suggestions for common issues
+            let suggestion = '';
+            if (message.includes('Invalid API key')) {
+                suggestion = '<div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">💡 Tip: Get your free API key at <a href="https://openrouter.ai/" target="_blank" style="color: inherit; text-decoration: underline;">openrouter.ai</a></div>';
+            } else if (message.includes('Invalid JSON') || message.includes('invalid format')) {
+                suggestion = '<div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">💡 Tip: Try analyzing simpler code, or wait a moment and try again.</div>';
+            } else if (message.includes('Rate limited')) {
+                suggestion = '<div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">💡 Tip: Free API has rate limits. Wait a few minutes before retrying.</div>';
+            } else if (message.includes('empty response')) {
+                suggestion = '<div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">💡 Tip: This might be a temporary API issue. Try waiting 30 seconds and analyzing again.</div>';
+            }
+            
+            // Format multiline messages with line breaks
+            const formattedMessage = escapeHTML(message).replace(/\n/g, '<br>');
+            
+            resultsContainer.innerHTML = `
+                <div class="error-message">
+                    <div class="error-message-title">⚠️ Error</div>
+                    <div style="white-space: pre-wrap; line-height: 1.6;">${formattedMessage}</div>
+                    ${suggestion}
+                </div>
+            `;
+        }
+
+        function showSuccess(message) {
+            // Temporary success message for settings
+            const originalContent = settingsPanel.querySelector('.settings-content');
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success-message';
+            successDiv.style.position = 'absolute';
+            successDiv.style.top = '20px';
+            successDiv.style.right = '20px';
+            successDiv.textContent = message;
+            document.body.appendChild(successDiv);
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        function clearCode() {
+            codeInput.value = '';
+            resultsPlaceholder.style.display = 'flex';
+            resultsContent.classList.remove('active');
+            resultsStats.innerHTML = '';
+            resultsContainer.innerHTML = '';
+            codeInput.focus();
+        }
+
+        function copyCode() {
+            const code = codeInput.value;
+            if (!code) {
+                showError('No code to copy');
+                return;
+            }
+
+            navigator.clipboard.writeText(code).then(() => {
+                // Visual feedback
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                showError('Failed to copy code');
+            });
+        }
+
+        function escapeHTML(html) {
+            const div = document.createElement('div');
+            div.textContent = html;
+            return div.innerHTML;
+        }
+
+        // ==================== Initialization ====================
+        window.addEventListener('load', () => {
+            const savedKey = getAPIKey();
+            if (!savedKey) {
+                console.log('Tip: Set your OpenRouter API key in Settings to get started');
+            }
+        });
+    </script>
+</body>
+</html>
